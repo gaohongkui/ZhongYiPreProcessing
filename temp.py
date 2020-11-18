@@ -16,8 +16,8 @@ import pandas as pd
 data = pd.read_csv("./yian_fj_zc.csv", index_col='auto_id', dtype={'fj_zc': 'str'})
 for item in data.loc[data['fj_zc'].notna(), 'fj_zc']:
     # print(type(item))
-    if re.search(r'(\d+g){2,}', item):
+    if re.search(r"[lI]+[,\d]*(g|支|克|片|袋|粒|ml|mg)", item):
         print('处理前：', item)
-        item = re.sub(r"(\d+),(g)", lambda x: x.group(1) + x.group(2), item)
-        item = re.sub(r",(\d+g){2,},", ",", item)
-        print('处理后：', re.sub(r"(\d+g)(\d+g){1,}", lambda x: x.group(1), item))
+        print('处理后：',
+              re.sub(r"[lI]+[,\d]*(g|支|克|片|袋|粒|ml|mg)",
+                     lambda x: x.group(0).replace("l", "1").replace("I", "1"), item))
