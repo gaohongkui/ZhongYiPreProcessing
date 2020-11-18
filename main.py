@@ -115,14 +115,13 @@ def merge_drug_name(raw):
 
 
 if __name__ == '__main__':
-    data = pd.read_excel("./yian_fj_zc_V0.xlsx", index_col='auto_id',
-                         dtype=str)
+    data = pd.read_excel("./yian_fj_zc_V1.xlsx", index_col='auto_id', dtype=str)
     # print(data.dtypes)
     data.replace(np.nan, '', inplace=True)
     # print(data.columns)
     # data.to_excel("./yian_fj_zc_V0.xlsx", engine='xlsxwriter')
 
-    for auto_id, (item, message) in data.loc[data['fj_zc'].notna(), ['fj_zc', '处理方式']].iterrows():
+    for auto_id, (item, message) in data.loc[data['规范后fj_zc'].notna(), ['规范后fj_zc', '处理方式']].iterrows():
         try:
             res = C_trans_to_E(item)
             res = remove_head_tail(res)
@@ -136,5 +135,5 @@ if __name__ == '__main__':
             print(auto_id, item)
             data.loc[auto_id, '规范后fj_zc'] = item
             continue
-    data.to_excel("./yian_fj_zc_V1.xlsx", engine='xlsxwriter')
+    # data.to_excel("./yian_fj_zc_V2.xlsx", engine='xlsxwriter')
     # merger_drug_name("丹参20g,瓜蒌20g,炙_甘草10g,桂枝10g,竹茹10g,枳壳10g,白术10g,陈皮10g,半夏10g,生地15g,茯苓15g,麦冬15g,党参15g")
