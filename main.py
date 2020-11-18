@@ -36,6 +36,20 @@ def remove_head_tail(raw):
     return raw
 
 
+def replace_l_with1(raw):
+    '''
+    将错误的lI替换为1
+    :param raw:
+    :return:
+    '''
+    message = ''
+    if re.search(r"[lI]+[,\d]*(g|支|克|片|袋|粒|ml|mg|瓶|盒)", raw):
+        raw = re.sub(r"[lI]+[,\d]*(g|支|克|片|袋|粒|ml|mg|瓶|盒)",
+                     lambda x: x.group(0).replace("l", "1").replace("I", "1"), raw)
+        message += '将错误的lI替换为1;'
+    return raw, message
+
+
 def merge_duplicate_number_dot_g(raw):
     '''
     去除连续重复的，号
@@ -125,6 +139,8 @@ if __name__ == '__main__':
         try:
             res = C_trans_to_E(item)
             res = remove_head_tail(res)
+            res, msg = replace_l_with1(res)
+            message += msg
             res, msg = merge_duplicate_number_dot_g(res)
             message += msg
             res, msg = merge_drug_name(raw=res)

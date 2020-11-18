@@ -16,7 +16,7 @@ def merge_drug_weight(raw):
     :param raw:
     :return:
     '''
-    pattern = r"[\u4e00-\u9fa5)]+(,\d+[./]?[\d]*(g|支|片|袋|粒|ml|mg|瓶|盒))+"
+    pattern = r"[\u4e00-\u9fa5)]+(,\d+[./]?[\d]*(g|支|克|片|袋|粒|ml|mg|瓶|盒))+"
     fun = lambda x: x.group(0).replace(",", "")
     return re.sub(pattern, fun, raw, flags=re.MULTILINE)
 
@@ -30,7 +30,7 @@ import pandas as pd
 data = pd.read_excel("./yian_fj_zc_V1.xlsx", index_col='auto_id', dtype=str)
 for item in data.loc[data['规范后fj_zc'].notna(), '规范后fj_zc']:
     # print(type(item))
-    # if re.search(r"[\u4e00-\u9fa5)]+(,\d+[./]?[\d]*(g|支|片|袋|粒|ml|mg|瓶|盒))+", item):
+    # if re.search(r"[\u4e00-\u9fa5)]+(,\d+[./]?[\d]*(g|支|克|片|袋|粒|ml|mg|瓶|盒))+", item):
     #     print('处理前：', item)
     #     print('处理后：', merge_drug_weight(item))
     if re.search(r"l0", item):

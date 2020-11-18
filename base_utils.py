@@ -66,7 +66,7 @@ def merger_drug_weight(raw):
     :param raw:
     :return:
     '''
-    pattern = r"[\u4e00-\u9fa5)]+,\d+[\./]?[\d]*(g|支|片|袋|粒|ml|mg|瓶)"
+    pattern = r"[\u4e00-\u9fa5)]+,\d+[\./]?[\d]*(g|支|克|片|袋|粒|ml|mg|瓶|盒)"
     fun = lambda x: x.group(0).replace(",", "")
     return re.sub(pattern, fun, raw, flags=re.MULTILINE)
 
@@ -79,7 +79,7 @@ def split_drugs(raw):
     :param raw:
     :return:
     '''
-    pattern = r"([\u4e00-\u9fa5\)]+\d+[\./]?[\d]+(g|支|片|袋|粒|ml|mg|瓶)\B)"
+    pattern = r"([\u4e00-\u9fa5\)]+\d+[\./]?[\d]+(g|支|克|片|袋|粒|ml|mg|瓶|盒)\B)"
 
     fun = lambda x: x.group(1) + ","
 
