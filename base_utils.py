@@ -79,7 +79,7 @@ def split_drugs(raw):
     :param raw:
     :return:
     '''
-    pattern = r"([\u4e00-\u9fa5\)]+\d+[\./]?[\d]+(g|支|克|片|袋|粒|ml|mg|瓶|盒)\B)"
+    pattern = r"([\u4e00-\u9fa5\)]+\d+[\./]?[\d]*(g|支|克|片|袋|粒|ml|mg|瓶|盒)\B)"
 
     fun = lambda x: x.group(1) + ","
 
@@ -87,7 +87,7 @@ def split_drugs(raw):
 
 
 if __name__ == '__main__':
-    raw_text = ",，治以eq茯 .，\"'|苓,\n 茯_苓草，9 0g,当.!归\n牛黄。。。。子(后来),,，20.88g，牛膝10g,生_甘草3g,天然牛黄,1/2支醋鳖甲10支白芍10ml醋鳖甲10.99g白芍10g大黄汤150ml入胃管，云南白药胶囊,0.25g×32/0.5g,po,bid,"
+    raw_text = "钩藤10g白芷6g辛夷6g白芍10ml醋鳖甲10.99g白芍10g大黄汤150ml入胃管，云南白药胶囊,0.25g×32/0.5g,po,bid,"
     raw_text = C_trans_to_E(raw_text)
     print(raw_text)
     raw_text = remove_head_tail(raw_text)

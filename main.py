@@ -3,6 +3,8 @@ import string
 import re
 import numpy as np
 
+units = "g|支|克|片|袋|粒|ml|mg|瓶|盒|包"
+
 
 def get_fj_cb():
     fj_cb = pd.read_excel('./方剂词表.xlsx', header=None)
@@ -43,8 +45,8 @@ def replace_l_with1(raw):
     :return:
     '''
     message = ''
-    if re.search(r"[lI]+[,\d]*(g|支|克|片|袋|粒|ml|mg|瓶|盒)", raw):
-        raw = re.sub(r"[lI]+[,\d]*(g|支|克|片|袋|粒|ml|mg|瓶|盒)",
+    if re.search(r"[lI]+[,\d]*(" + units + ")", raw):
+        raw = re.sub(r"[lI]+[,\d]*(" + units + ")",
                      lambda x: x.group(0).replace("l", "1").replace("I", "1"), raw)
         message += '将错误的lI替换为1;'
     return raw, message
@@ -128,8 +130,78 @@ def merge_drug_name(raw):
     return raw, message
 
 
+def merge_drug_weight(raw):
+    '''
+    将药名与克数中夹带，的情况合并
+    桑枝,20g
+    制附片(先熬30分钟),20g
+    天然牛黄,1/2支
+    :param raw:
+    :return:
+    '''
+    message = ''
+    pattern = r"[\u4e00-\u9fa5)]+(,\d+[./]?[\d]*(g|支|克|片|袋|粒|ml|mg|瓶|盒))+"
+    if re.search(pattern, raw):
+        raw = re.sub(pattern, lambda x: x.group(0).replace(",", ""), raw, flags=re.MULTILINE)
+        message += '将药名与单位中夹带，号的情况合并;'
+    return raw, message
+
+
+def translate_Enumber2Cnumber(str):
+    dict_ = {'一': '1', '二': '2', '三': '3', '四': '4', '五': '5', '六': '6', '七': '7', '八': '8', '九': '9'}
+    table = {ord(v): ord(k) for k, v in dict_.items()}
+    return str.translate(table)
+
+
+def covert_number2Chinese(raw):
+    '''
+    将药名中含有小写数字的转为大写
+    :param raw:
+    :return:
+    '''
+    message = ''
+    pattern = r"(1贯煎|3金2石2子汤|七叶\d+枝花|3七|2花|五42汤|\d+陈汤|\d+物汤|\d+仙|\d+逆|\d+妙|" \
+              r"\d+拗汤|\d+君子|\d+陈|\d+子|\d+仁|\d+苓散|\d+散|\d+至丸|\d+白|\d+碧|\d+棱)"
+    if re.search(pattern, raw):
+        raw = re.sub(pattern, lambda x: translate_Enumber2Cnumber(x.group(0)), raw)
+        message += '将药名中含有小写数字的转为大写;'
+
+    return raw, message
+
+
+def split_drugs(raw):
+    '''
+    拆分多味药
+    醋鳖甲10g白芍10g
+    醋鳖甲10支白芍10ml醋鳖甲10g白芍10g
+    :param raw:
+    :return:
+    '''
+    message = ''
+    pattern = r"([\u4e00-\u9fa5)]+\d+[./]?[\d]*(" + units + r")\B)"
+    if re.search(pattern, raw):
+        raw = re.sub(pattern, lambda x: x.group(1) + ",", raw, flags=re.MULTILINE)
+        message += '拆分多味药名没分割的情况;'
+    return raw, message
+
+
+def add_units(raw):
+    '''
+    给药品添加单位g;
+    :param raw:
+    :return:
+    '''
+    message = ''
+    pattern = r"([\u4e00-\u9fa5)]+)(\d+),?([\u4e00-\u9fa5(]+?)"
+    if re.match(r"([\u4e00-\u9fa5)]+\d+,?[\u4e00-\u9fa5(]+\d+)+", raw):
+        raw = re.sub(pattern, lambda x: x.group(1) + x.group(2) + 'g,' + x.group(3), raw)
+        raw = raw.replace("g,条", "条")
+        message += '给药品添加单位g;'
+    return raw, message
+
+
 if __name__ == '__main__':
-    data = pd.read_excel("./yian_fj_zc_V1.xlsx", index_col='auto_id', dtype=str)
+    data = pd.read_excel("./yian_fj_zc_V1_1.xlsx", index_col='auto_id', dtype=str)
     # print(data.dtypes)
     data.replace(np.nan, '', inplace=True)
     # print(data.columns)
@@ -137,19 +209,30 @@ if __name__ == '__main__':
 
     for auto_id, (item, message) in data.loc[data['规范后fj_zc'].notna(), ['规范后fj_zc', '处理方式']].iterrows():
         try:
-            res = C_trans_to_E(item)
-            res = remove_head_tail(res)
-            res, msg = replace_l_with1(res)
+            item = item.strip(",")
+            # res = C_trans_to_E(item)
+            # res = remove_head_tail(res)
+            # res, msg = replace_l_with1(res)
+            # message += msg
+            # res, msg = merge_duplicate_number_dot_g(res)
+            # message += msg
+            # res, msg = merge_drug_name(raw=res)
+            # message += msg
+            res, msg = merge_drug_weight(item)
             message += msg
-            res, msg = merge_duplicate_number_dot_g(res)
+            res, msg = covert_number2Chinese(res)
             message += msg
-            res, msg = merge_drug_name(raw=res)
+            res, msg = split_drugs(res)
             message += msg
+            res, msg = add_units(res)
+            message += msg
+
             data.loc[auto_id, '规范后fj_zc'] = res
             data.loc[auto_id, '处理方式'] = message
-        except:
+        except Exception as e:
+            print(e)
             print(auto_id, item)
             data.loc[auto_id, '规范后fj_zc'] = item
-            continue
-    # data.to_excel("./yian_fj_zc_V2.xlsx", engine='xlsxwriter')
+            break
+    data.to_excel("./yian_fj_zc_V2.xlsx", engine='xlsxwriter')
     # merger_drug_name("丹参20g,瓜蒌20g,炙_甘草10g,桂枝10g,竹茹10g,枳壳10g,白术10g,陈皮10g,半夏10g,生地15g,茯苓15g,麦冬15g,党参15g")
