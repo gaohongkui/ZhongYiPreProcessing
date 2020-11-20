@@ -200,16 +200,98 @@ def add_units(raw):
     return raw, message
 
 
+def handle_po_bid(raw):
+    '''
+    处理方剂中含有pid，qd等信息的
+    :param raw:
+    :return:
+    '''
+    message = ''
+    info_additional = ''
+    if re.search(r"(qd|bid|po|tid|ivgtt|iv|st|ivgt)+", raw):
+        info_additional += (",".join(re.findall(r"(qd|bid|po|tid|ivgtt|iv|st|ivgt)+", raw)) + ";")
+        pattern = r",?(((qd|bid|po|tid|ivgtt|iv|st|ivgt),?)+)"
+        raw = re.sub(pattern, lambda x: '(' + x.group(1).rstrip(',') + '),', raw).rstrip(',')
+        message += '处理方剂中含有pid，qd等信息;'
+    return raw, message, info_additional
+
+
+def handle_wu2null(raw):
+    '''
+    将无用信息设置为空
+    :param raw:
+    :return:
+    '''
+    pattern = r"(^无$|无需[\u4e00-\u9fa5]+药|^停用中药汤剂|^停用汤药|^中药停用|略$)"
+    message = ''
+    info_add = ''
+    if re.search(pattern, raw):
+        message += '将无用信息设置为空;'
+        if re.search(r"(无需[\u4e00-\u9fa5]+药|^停用中药汤剂|^停用汤药|^中药停用)", raw):
+            info_add += '无需服药或停用药;'
+        raw = ''
+    return raw, message, info_add
+
+
+def delete_luanma(raw):
+    '''
+    删除纯数字和乱码符号
+    :param raw:
+    :return:
+    '''
+    message = ''
+    pattern = r"^[\d" + string.punctuation + "]+$"
+    if re.search(pattern, raw):
+        message += '删除纯数字和乱码符号;'
+        raw = ''
+    return raw, message
+
+
+def split_diff_fj(raw):
+    '''
+    将不同方剂用;号分割
+    :param raw:
+    :return:
+    '''
+    message = ''
+    flag = False
+    if re.search(r"(\(2\)|②|乙方|2方|2诊|2,)", raw):
+        if re.search(r"1,.*2,", raw):
+            flag = True
+            raw = raw.replace("1,", "")
+            raw = re.sub(r",?\d,", ";", raw)
+        if re.search(r"\(1\).*\(2\)", raw):
+            flag = True
+            raw = raw.replace("(1)", "")
+            raw = re.sub(r",?\(\d\),?", ";", raw)
+        elif re.search(r"①.*②", raw):
+            flag = True
+            raw = raw.replace("①", "")
+            raw = re.sub(r",?[①②③④⑤⑥⑦⑧⑨],?", ";", raw)
+        elif re.search(r"甲方.*乙方", raw):
+            flag = True
+            raw = re.sub(r",?([乙丙丁戊己庚辛壬葵]方:?)", lambda x: ";" + x.group(1), raw)
+        elif re.search(r"1方.*2方", raw):
+            flag = True
+            raw = re.sub(r",?(第?[2-9]方[,:]?)", lambda x: ";" + x.group(1), raw)
+        elif re.search(r"初诊.*2诊", raw):
+            raw = re.sub(r",?([2-9]诊[,:]?)", lambda x: ";" + x.group(1), raw)
+        if flag:
+            message += "将不同方剂用分号分割;"
+    return raw.strip(","), message
+
+
 if __name__ == '__main__':
-    data = pd.read_excel("./yian_fj_zc_V1_1.xlsx", index_col='auto_id', dtype=str)
+    data = pd.read_excel("./yian_fj_zc_V2.xlsx", index_col='auto_id', dtype=str)
     # print(data.dtypes)
     data.replace(np.nan, '', inplace=True)
     # print(data.columns)
     # data.to_excel("./yian_fj_zc_V0.xlsx", engine='xlsxwriter')
 
-    for auto_id, (item, message) in data.loc[data['规范后fj_zc'].notna(), ['规范后fj_zc', '处理方式']].iterrows():
+    for auto_id, (item, message, info_additional) in data.loc[
+        data['规范后fj_zc'].notna(), ['规范后fj_zc', '处理方式', '信息补充']].iterrows():
         try:
-            item = item.strip(",")
+            # item = item.strip(",")
             # res = C_trans_to_E(item)
             # res = remove_head_tail(res)
             # res, msg = replace_l_with1(res)
@@ -218,21 +300,32 @@ if __name__ == '__main__':
             # message += msg
             # res, msg = merge_drug_name(raw=res)
             # message += msg
-            res, msg = merge_drug_weight(item)
+            # res, msg = merge_drug_weight(item)
+            # message += msg
+            # res, msg = covert_number2Chinese(res)
+            # message += msg
+            # res, msg = split_drugs(res)
+            # message += msg
+            # res, msg = add_units(res)
+            # message += msg
+            res, msg, info_add = handle_po_bid(item)
             message += msg
-            res, msg = covert_number2Chinese(res)
+            info_additional += info_add
+            res, msg, info_add = handle_wu2null(res)
             message += msg
-            res, msg = split_drugs(res)
+            info_additional += info_add
+            res, msg = delete_luanma(res)
             message += msg
-            res, msg = add_units(res)
+            res, msg = split_diff_fj(res)
             message += msg
 
             data.loc[auto_id, '规范后fj_zc'] = res
             data.loc[auto_id, '处理方式'] = message
+            data.loc[auto_id, '信息补充'] = info_additional
         except Exception as e:
-            print(e)
+            print('错误', e)
             print(auto_id, item)
             data.loc[auto_id, '规范后fj_zc'] = item
             break
-    data.to_excel("./yian_fj_zc_V2.xlsx", engine='xlsxwriter')
+    data.to_excel("./yian_fj_zc_V3.xlsx", engine='xlsxwriter')
     # merger_drug_name("丹参20g,瓜蒌20g,炙_甘草10g,桂枝10g,竹茹10g,枳壳10g,白术10g,陈皮10g,半夏10g,生地15g,茯苓15g,麦冬15g,党参15g")

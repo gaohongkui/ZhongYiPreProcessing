@@ -46,3 +46,7 @@ for item in data.loc[data['fj_zc'].notna(), 'fj_zc']:
     # print(type(item))
     if re.search(r'(bid|bd|tid|qd|po|iv|st)', item):
         print(item)
+
+(\(1\)|1,|①|甲方|1方)
+
+^[\d"+string.punctuation+"]+$

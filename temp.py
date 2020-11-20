@@ -56,26 +56,55 @@ def add_units(raw):
     return raw
 
 
-# raw_text = "eq茯苓,茯苓90g,当归牛黄子(后来)20.88g,天然牛黄1/2支醋鳖甲10支白芍10ml醋鳖甲10.99g白芍10g官场"
-#
-# re.sub(r"([\u4e00-\u9fa5\)]+\d+[\./]?[\d]+(g|支|ml)\B)", fun, raw_text)
+def handle_po_bid(raw):
+    pattern = r",?(((qd|bid|po|tid|ivgtt|iv|st|ivgt),?)+)"
+
+    def fun(m):
+        return '(' + m.group(1).rstrip(',') + '),'
+
+    raw = re.sub(pattern, fun, raw).rstrip(',')
+    return raw
+
+
+def split_diff_fj(raw):
+    if re.search(r"(\(2\)|②|乙方|2方|2诊|2,)", raw):
+        if re.search(r"1,.*2,", raw):
+            raw = raw.replace("1,", "")
+            raw = re.sub(r",?\d,", ";", raw)
+        if re.search(r"\(1\).*\(2\)", raw):
+            raw = raw.replace("(1)", "")
+            raw = re.sub(r",?\(\d\),?", ";", raw)
+        elif re.search(r"①.*②", raw):
+            raw = raw.replace("①", "")
+            raw = re.sub(r",?[①②③④⑤⑥⑦⑧⑨],?", ";", raw)
+        elif re.search(r"甲方.*乙方", raw):
+            raw = re.sub(r",?([乙丙丁戊己庚辛壬葵]方:?)", lambda x: ";" + x.group(1), raw)
+        elif re.search(r"1方.*2方", raw):
+            raw = re.sub(r",?(第?[2-9]方[,:]?)", lambda x: ";" + x.group(1), raw)
+        elif re.search(r"初诊.*2诊", raw):
+            raw = re.sub(r",?([2-9]诊[,:]?)", lambda x: ";" + x.group(1), raw)
+    return raw.strip(",")
+
 
 import pandas as pd
+import string
 
 # fj_number = pd.read_csv("数字方剂名_v2.csv")
 # print(fj_number.head())
 
 
-data = pd.read_excel("./yian_fj_zc_V1_1.xlsx", index_col='auto_id', dtype=str)
+data = pd.read_excel("./yian_fj_zc_V2.xlsx", index_col='auto_id', dtype=str)
 count = 0
-for item in data.loc[data['规范后fj_zc'].notna(), '规范后fj_zc']:
+for auto_id, (item, message, info_additional) in data.loc[
+    data['规范后fj_zc'].notna(), ['规范后fj_zc', '处理方式', '信息补充']].iterrows():
     # print(type(item))
-    item = split_drugs(covert_number2Chinese(merge_drug_weight(item)))
-    if re.search(r"([\u4e00-\u9fa5)]+\d+,?[\u4e00-\u9fa5(]+\d+)+", item):
+    # if re.search(r"(\(2\)|②|乙方|2方|2诊|2,)", item):
+    #     split_diff_fj(raw=item)
+    if re.search(r"(\(2\)|②|乙方|2方|2诊|2,)", item):
         count += 1
-        print('处理前：', item)
+        print('处理前：', auto_id, item)
 
-        print('处理后：', add_units(raw=item))
+        print('处理后：', auto_id, split_diff_fj(raw=item))
 print(count)
 # if re.search(r"l0", item):
 #     print('处理前：', item)
