@@ -86,25 +86,45 @@ def split_diff_fj(raw):
     return raw.strip(",")
 
 
+def handle_search_info(raw, auto_id):
+    new_id = ''
+    visit_id = ''
+    if re.search(r"([守用]上方$|继,服,上,方|同初诊$)", raw):
+        visit_id = '0'
+    if re.search(r"(\d)诊[方]?$", raw):
+        m = re.search(r"(\d)诊[方]?$", raw)
+        visit_id = str(int(m.group(1))-1)
+    if visit_id != '':
+        case_type, patient_id, ch_id = base_data.loc[auto_id, ['case_type', 'patient_id', 'ch_id']]
+        if case_type == '国家十一五' or case_type == '国家十五':
+            new_id = base_data[(base_data['ch_id'] == ch_id) & (base_data['visit_times'] == visit_id)].index.item()
+            raw = data.loc[new_id, '规范后fj_zc'] if pd.notna(data.loc[new_id, '规范后fj_zc']) else ''
+        elif case_type == '300K名医医案库':
+            new_id = base_data[(base_data['patient_id'] == patient_id) & (base_data['visit_times'] == visit_id)].index.item()
+            raw = data.loc[new_id, '规范后fj_zc'] if pd.notna(data.loc[new_id, '规范后fj_zc']) else ''
+
+    return raw
+
+
 import pandas as pd
 import string
 
 # fj_number = pd.read_csv("数字方剂名_v2.csv")
 # print(fj_number.head())
 
-
-data = pd.read_excel("./yian_fj_zc_V2.xlsx", index_col='auto_id', dtype=str)
+base_data = pd.read_csv('yian_raw_data.csv', index_col='auto_id', dtype=str)
+data = pd.read_excel("./yian_fj_zc_V3.xlsx", index_col='auto_id', dtype=str)
 count = 0
 for auto_id, (item, message, info_additional) in data.loc[
     data['规范后fj_zc'].notna(), ['规范后fj_zc', '处理方式', '信息补充']].iterrows():
     # print(type(item))
     # if re.search(r"(\(2\)|②|乙方|2方|2诊|2,)", item):
     #     split_diff_fj(raw=item)
-    if re.search(r"(\(2\)|②|乙方|2方|2诊|2,)", item):
+    if re.search(r"(\d)诊[方]?$", item):
         count += 1
-        print('处理前：', auto_id, item)
+        print('处理前：', auto_id, item, base_data.loc[auto_id, 'case_type'])
 
-        print('处理后：', auto_id, split_diff_fj(raw=item))
+        print('处理后：', auto_id, handle_search_info(raw=item, auto_id=auto_id))
 print(count)
 # if re.search(r"l0", item):
 #     print('处理前：', item)

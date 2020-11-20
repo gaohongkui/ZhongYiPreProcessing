@@ -282,7 +282,7 @@ def split_diff_fj(raw):
 
 
 if __name__ == '__main__':
-    data = pd.read_excel("./yian_fj_zc_V2.xlsx", index_col='auto_id', dtype=str)
+    data = pd.read_excel("./yian_fj_zc_V3.xlsx", index_col='auto_id', dtype=str)
     # print(data.dtypes)
     data.replace(np.nan, '', inplace=True)
     # print(data.columns)
@@ -327,5 +327,5 @@ if __name__ == '__main__':
             print(auto_id, item)
             data.loc[auto_id, '规范后fj_zc'] = item
             break
-    data.to_excel("./yian_fj_zc_V3.xlsx", engine='xlsxwriter')
+    # data.to_excel("./yian_fj_zc_V4.xlsx", engine='xlsxwriter')
     # merger_drug_name("丹参20g,瓜蒌20g,炙_甘草10g,桂枝10g,竹茹10g,枳壳10g,白术10g,陈皮10g,半夏10g,生地15g,茯苓15g,麦冬15g,党参15g")

@@ -50,3 +50,5 @@ for item in data.loc[data['fj_zc'].notna(), 'fj_zc']:
 (\(1\)|1,|①|甲方|1方)
 
 ^[\d"+string.punctuation+"]+$
+
+r"([守用]上方|前方|同.诊|\d诊方|继,服,上,方|守.*方)"
